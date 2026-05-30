@@ -105,7 +105,11 @@ class SparseFeatures2Mesh:
         """
         # add sdf bias to verts_attrs
         coords = cubefeats.coords[:, 1:]
-        feats = cubefeats.feats
+        # The decoder may emit bf16/fp16 features under mixed precision, while
+        # FlexiCubes builds several fp32 work buffers.  Keep mesh extraction in
+        # fp32 to avoid dtype mismatches in scatter/index-put ops and to keep
+        # the geometric post-processing numerically stable.
+        feats = cubefeats.feats.float()
         
         sdf, deform, color, weights = [self.get_layout(feats, name) for name in ['sdf', 'deform', 'color', 'weights']]
         sdf += self.sdf_bias
